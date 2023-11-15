@@ -4,9 +4,9 @@
  */
 package com.ui;
 
-import com.thongke.DoanhThu;
-import com.thongke.HoaDon;
-import com.thongke.KhachHang;
+import com.thongke.DoanhThuNam;
+import com.thongke.DoanhThuHoaDon;
+import com.thongke.DoanhThuXe;
 import java.awt.Color;
 import java.awt.Container;
 import java.util.logging.Level;
@@ -77,7 +77,6 @@ public class ThongKe extends javax.swing.JDialog {
         jSeparator1 = new javax.swing.JSeparator();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setPreferredSize(new java.awt.Dimension(900, 590));
 
         pnHomeTK.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         pnHomeTK.setLayout(new java.awt.BorderLayout());
@@ -173,10 +172,11 @@ public class ThongKe extends javax.swing.JDialog {
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(green1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(green1Layout.createSequentialGroup()
-                        .addGroup(green1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(lblKhachHang)
-                            .addComponent(lblHoaDon)
-                            .addComponent(lblDoanhThu))
+                        .addGroup(green1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(lblKhachHang, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addGroup(green1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(lblHoaDon)
+                                .addComponent(lblDoanhThu)))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(green1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jSeparator1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -200,6 +200,7 @@ public class ThongKe extends javax.swing.JDialog {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(pnMenu, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, 0)
                 .addComponent(pnHomeTK, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
 
@@ -208,15 +209,15 @@ public class ThongKe extends javax.swing.JDialog {
     }// </editor-fold>//GEN-END:initComponents
 
     private void lblKhachHangMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblKhachHangMouseClicked
-        show(new KhachHang().getContentPane());
+        show(new DoanhThuXe().getContentPane());
     }//GEN-LAST:event_lblKhachHangMouseClicked
 
     private void lblHoaDonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblHoaDonMouseClicked
-        show(new HoaDon().getContentPane());
+        show(new DoanhThuHoaDon().getContentPane());
     }//GEN-LAST:event_lblHoaDonMouseClicked
 
     private void lblDoanhThuMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblDoanhThuMouseClicked
-        show(new DoanhThu().getContentPane());
+        show(new DoanhThuNam().getContentPane());
     }//GEN-LAST:event_lblDoanhThuMouseClicked
 
     private void lblKhachHangMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_lblKhachHangMousePressed

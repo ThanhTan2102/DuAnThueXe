@@ -14,7 +14,7 @@ CREATE TABLE NhanVien (
 	Hinh varchar(225),
     CONSTRAINT PK_NhanVien PRIMARY KEY (MaNV)
 );
-select * from NhanVien
+
 -- Tạo bảng KhachHang*
 
 
@@ -56,6 +56,7 @@ CREATE TABLE HoaDon (
     MaKH int NOT NULL,
 	MaNV varchar(5) NOT NULL,
 	NgayTao Date NOT NULL,
+	TrangThai nvarchar(50) NOT NULL,
     TongTien money ,
 	CONSTRAINT PK_HoaDon PRIMARY KEY (MaHD),
     CONSTRAINT FK_HD_KH FOREIGN KEY (MaKH) REFERENCES KhachHang(MaKH) ON DELETE NO ACTION ON UPDATE CASCADE,
@@ -103,63 +104,21 @@ INSERT [dbo].[HoaDonChiTiet]([MaHDCT],[MaHD],[MaXe],[NgayDat],[NgayTra],[SoLuong
 SET IDENTITY_INSERT [dbo].[HoaDonChiTiet] OFF
 
 Go
-INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TongTien])VALUES ('HD001', 1,'NV001', '2023-10-29','21600000')
-INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TongTien])VALUES ('HD002', 2,'NV001', '2023-09-09','10800000')
-INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TongTien])VALUES ('HD003', 1,'NV002', '2023-09-09','10800000')
+INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TrangThai],[TongTien])VALUES ('HD001', 1,'NV001', '2023-10-29',N'Đã thanh toán','21600000')
+INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TrangThai],[TongTien])VALUES ('HD002', 2,'NV001', '2023-09-09',N'Chưa thanh toán','10800000')
+INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TrangThai],[TongTien])VALUES ('HD003', 1,'NV002', '2023-09-09',N'Chưa thanh toán','10800000')
 
 
 
-select * from nhanvien
+select * from NhanVien
 select * from KhachHang
 select * from ThongTinXe
 select * from LoaiXe
 select * from HoaDon
 select * from HoaDonChiTiet
 
-    -- Thống kê khách hàng đã có hóa đơn
-CREATE PROCEDURE sp_ThongKeKhachHangCoHD
-AS
-BEGIN
-    SELECT
-        kh.MaKH,
-        kh.TenKH,
-        hd.MaHD
-    FROM KhachHang kh
-    JOIN HoaDon hd ON kh.MaKH = hd.MaKH;
-END
-
---Thống kê khách hàng chưa có hóa đơn
-CREATE PROCEDURE sp_ThongKeKhachHangKHD
-AS
-BEGIN
-    SELECT
-        kh.MaKH,
-        kh.TenKH
-    FROM KhachHang kh
-    WHERE kh.MaKH NOT IN (SELECT DISTINCT MaKH FROM HoaDon);
-END
-
 
     -- Thống kê doanh thu trong năm
-
-
-    -- Thống kê hóa đơn theo tháng
-CREATE PROCEDURE sp_ThongKeHoaDonThang
-    @Thang INT
-AS
-BEGIN
-    SELECT
-        @Thang AS Thang,
-        MaNV AS MaNhanVien,
-        COUNT(*) AS SoLuongHoaDon
-    FROM HoaDon
-    WHERE MONTH(NgayTao) = @Thang
-    GROUP BY MaNV;
-END
-
-
-
----
 IF OBJECT_ID('Nam') IS NOT NULL
 DROP PROCEDURE sp_ThongKeDoanhThuNam
 
@@ -188,4 +147,77 @@ BEGIN
         @DoanhThuThapNhat AS DoanhThuThapNhat,
         @DoanhThuCaoNhat AS DoanhThuCaoNhat;
 END
+
+--Doanh thu theo xe
+CREATE PROCEDURE sp_DoanhThuXe 
+    @maXe int, 
+    @thang int, 
+    @nam int
+AS
+BEGIN
+    DECLARE @DoanhThu DECIMAL(18, 2);
+
+    -- Tính toán doanh thu dựa trên thông tin của xe và các hóa đơn chi tiết
+    SELECT @DoanhThu = SUM(hdct.GiaThue)
+    FROM ThongTinXe ttx
+    JOIN HoaDonChiTiet hdct ON ttx.MaXe = hdct.MaXe
+    JOIN HoaDon hd ON hdct.MaHD = hd.MaHD
+    WHERE ttx.MaXe = @maXe
+        AND YEAR(hd.NgayTao) = @nam
+        AND MONTH(hd.NgayTao) = @thang;
+
+    -- Trả kết quả
+    SELECT
+		@maXe AS MaXe,
+        @thang AS Thang,
+        @nam AS Nam,
+        @DoanhThu AS DoanhThu;
+END;
+
+
+--Doanh thu theo hóa đơn trong tháng, năm
+CREATE PROCEDURE sp_ThongKeHoaDon
+    @thang int,
+    @nam int
+AS
+BEGIN
+    -- Đặt ngày bắt đầu và kết thúc dựa trên tháng và năm đã cho
+    DECLARE @NgayBatDau DATE, @NgayKetThuc DATE;
+
+    SET @NgayBatDau = DATEFROMPARTS(@nam, @thang, 1);
+    SET @NgayKetThuc = EOMONTH(@NgayBatDau);
+
+    -- Thống kê số lượng hóa đơn trong tháng và năm
+    DECLARE @SoLuongHoaDon INT;
+    SELECT 
+        @SoLuongHoaDon = COUNT(*)
+    FROM 
+        HoaDon HD
+    WHERE 
+        HD.NgayTao BETWEEN @NgayBatDau AND @NgayKetThuc;
+
+    -- Thống kê doanh thu trong tháng và năm
+    DECLARE @DoanhThu DECIMAL(18, 2);
+    SELECT 
+        @DoanhThu = SUM(HD.TongTien)
+    FROM 
+        HoaDon HD
+    WHERE 
+        HD.NgayTao BETWEEN @NgayBatDau AND @NgayKetThuc;
+
+    -- Trả kết quả
+    SELECT
+        @thang AS Thang,
+        @nam AS Nam,
+        @SoLuongHoaDon AS SoLuongHoaDon,
+        @DoanhThu AS DoanhThu;
+END;
+
+
+
+
+select * from NhanVien
+select * from KhachHang
+select * from HoaDon
+select * from HoaDonChiTiet
 

@@ -45,7 +45,7 @@ public class BD_DoanhThu extends javax.swing.JPanel {
             for (int nam = 2023; nam <= 2023; nam++) {
                 for (int thang = 1; thang <= 12; thang++) {
                     // Truyền ngày, tháng, và năm cho thủ tục
-                    String query = "EXEC sp_ThongKeDoanhThuTheoThang ?, ?";
+                    String query = "EXEC sp_ThongKeDoanhThu ?, ?";
                     PreparedStatement ps = conn.prepareStatement(query);
                     ps.setInt(1, thang);
                     ps.setInt(2, nam);

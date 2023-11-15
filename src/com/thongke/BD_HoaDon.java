@@ -39,24 +39,22 @@ public class BD_HoaDon extends javax.swing.JPanel {
         return conn;
     }
 
-    public static DefaultCategoryDataset createDataset() {
+    public static DefaultCategoryDataset createDataset(int selectedMonth, int selectedYear) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
-        try {
-            Connection conn = getConnection();
-
-            for (int thang = 1; thang <= 12; thang++) {
-                // Truyền tháng cho thủ tục
-                String query = "EXEC sp_ThongKeHoaDonThang ?";
-                PreparedStatement ps = conn.prepareStatement(query);
-                ps.setInt(1, thang);
-                ResultSet rs = ps.executeQuery();
-                while (rs.next()) {
-                    dataset.addValue(rs.getInt("SoLuongHoaDon"), "Tháng " + thang, rs.getString("MaNhanVien"));
+        try (Connection conn = getConnection()) {
+            String query = "EXEC sp_DoanhThuTheoHoaDon ?, ?";
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
+                ps.setInt(1, selectedMonth);
+                ps.setInt(2, selectedYear);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        while (rs.next()) {
+                            dataset.addValue(rs.getDouble("DoanhThu"), "Tổng Doanh thu", String.format("%02d/%04d", selectedMonth, selectedYear));
+                        }
+                    }
                 }
             }
-
-            conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -64,10 +62,10 @@ public class BD_HoaDon extends javax.swing.JPanel {
         return dataset;
     }
 
-    public static JFreeChart createBarChart() {
+    public static JFreeChart createBarChart(int selectedMonth, int selectedYear) {
         JFreeChart barChart = ChartFactory.createBarChart(
-                "Biểu đồ thống kê hóa đơn theo tháng", "Tháng", "Số lượng hóa đơn", createDataset(),
-                PlotOrientation.VERTICAL, true, true, false);
+                "Biểu đồ doanh thu theo Tháng - Năm", "Tháng - Năm", "Hóa đơn",
+                createDataset(selectedMonth, selectedYear), PlotOrientation.VERTICAL, true, true, false);
 
         JFrame frame = new JFrame();
         ChartPanel chartPanel = new ChartPanel(barChart);
@@ -75,9 +73,15 @@ public class BD_HoaDon extends javax.swing.JPanel {
         frame.setSize(420, 260);
         frame.setLocationRelativeTo(null);
         frame.setResizable(true);
-//        frame.setVisible(true);
+        frame.setVisible(true);
 
         return barChart;
+    }
+
+    public static void main(String[] args) {
+//        int selectedMonth = [1,2,3,4,5,6,7,8,9,11,12]; // Replace with the desired month
+        int selectedYear = 2023; // Replace with the desired year
+//        createBarChart(selectedMonth, selectedYear);
     }
 
     @SuppressWarnings("unchecked")
@@ -96,9 +100,7 @@ public class BD_HoaDon extends javax.swing.JPanel {
         );
     }// </editor-fold>//GEN-END:initComponents
 
-//    public static void main(String[] args) {
-//        createBarChart();
-//    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
 }
