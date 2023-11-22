@@ -7,6 +7,7 @@ package com.ui;
 import com.thongke.DoanhThuNam;
 import com.thongke.DoanhThuHoaDon;
 import com.thongke.DoanhThuXe;
+import com.utils.XManager;
 import java.awt.Color;
 import java.awt.Container;
 import java.util.logging.Level;
@@ -25,6 +26,9 @@ public class ThongKe extends javax.swing.JDialog {
         lblKhachHang.setForeground(DefaultColor);
         lblHoaDon.setForeground(DefaultColor);
         lblDoanhThu.setForeground(DefaultColor);
+        if(!XManager.isManager()){
+            lblDoanhThu.remove(this);
+        }
     }
 
     private void show(Container content) {

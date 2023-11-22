@@ -17,7 +17,7 @@ public class JDBC {
     public static ResultSet rs = null; // Trả về kết quả truy vấn
 
     private static String driver = "com.microsoft.sqlserver.jdbc.SQLServerDriver";
-    private static String dburl = "jdbc:sqlserver://localhost:1433;databaseName=EduSys;encrypt=true;trustServerCertificate=true;";
+    private static String dburl = "jdbc:sqlserver://localhost:1433;databaseName=QuanLyThueXe;encrypt=true;trustServerCertificate=true;";
     private static String dbuser = "sa";
     private static String dbpass = "123456";
 
@@ -48,6 +48,15 @@ public class JDBC {
                 ps.setObject(i + 1, args[i]);
             }
             return ps;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Connection getConnection() {
+        try {
+            return DriverManager.getConnection(dburl, dbuser, dbpass);
         } catch (SQLException e) {
             e.printStackTrace();
             throw new RuntimeException(e);

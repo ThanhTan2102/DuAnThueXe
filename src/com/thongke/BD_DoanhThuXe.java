@@ -40,20 +40,22 @@ public class BD_DoanhThuXe extends javax.swing.JPanel {
         return conn;
     }
 
-    public static CategoryDataset createDataset(int maXe, int ThangBD, int ThangKT, int Nam) {
+    public static CategoryDataset createDataset(int[] maXes, int ThangBD, int ThangKT, int Nam) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
         try (Connection conn = getConnection()) {
-            for (int currentMonth = ThangBD; currentMonth <= ThangKT; currentMonth++) {
-                String query = "EXEC sp_DoanhThuXe ?, ?, ?";
-                try (PreparedStatement ps = conn.prepareStatement(query)) {
-                    ps.setInt(1, maXe);
-                    ps.setInt(2, currentMonth);
-                    ps.setInt(3, Nam);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            double doanhThu = rs.getDouble("DoanhThu");
-                            dataset.addValue(doanhThu, "Doanh Thu", String.format("%02d/%04d", currentMonth, Nam));
+            for (int maXe : maXes) {
+                for (int currentMonth = ThangBD; currentMonth <= ThangKT; currentMonth++) {
+                    String query = "EXEC sp_DoanhThuXe ?, ?, ?";
+                    try (PreparedStatement ps = conn.prepareStatement(query)) {
+                        ps.setInt(1, maXe);
+                        ps.setInt(2, currentMonth);
+                        ps.setInt(3, Nam);
+                        try (ResultSet rs = ps.executeQuery()) {
+                            while (rs.next()) {
+                                double doanhThu = rs.getDouble("DoanhThu");
+                                dataset.addValue(doanhThu, "Doanh Thu - Xe " + maXe, String.format("%02d/%04d", currentMonth, Nam));
+                            }
                         }
                     }
                 }
@@ -65,7 +67,7 @@ public class BD_DoanhThuXe extends javax.swing.JPanel {
         return dataset;
     }
 
-     public static JFreeChart createBarChart(CategoryDataset dataset) {
+    public static JFreeChart createBarChart(CategoryDataset dataset) {
         JFreeChart barChart = ChartFactory.createBarChart(
                 "Biểu đồ Doanh thu theo Mã Xe", "Tháng - Năm", "Doanh thu",
                 dataset, PlotOrientation.VERTICAL, true, true, false);
@@ -74,12 +76,12 @@ public class BD_DoanhThuXe extends javax.swing.JPanel {
     }
 
     public static void main(String[] args) {
-        int maXe = 1; // Thay đổi thành mã xe cụ thể
+        int[] maXes = {1, 2,3,4}; // Thay đổi thành mã xe cụ thể hoặc danh sách mã xe
         int startMonth = 1; // Thay đổi theo tháng bắt đầu mong muốn
         int endMonth = 12; // Thay đổi theo tháng kết thúc mong muốn
         int selectedYear = 2023; // Thay đổi theo năm mong muốn
 
-        CategoryDataset dataset = createDataset(maXe, startMonth, endMonth, selectedYear);
+        CategoryDataset dataset = createDataset(maXes, startMonth, endMonth, selectedYear);
         JFreeChart barChart = createBarChart(dataset);
 
         // Hiển thị biểu đồ trong một cửa sổ

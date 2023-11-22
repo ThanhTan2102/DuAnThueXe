@@ -1,4 +1,4 @@
-﻿-- Tạo cơ sở dữ liệu
+-- Tạo cơ sở dữ liệu
 CREATE DATABASE QuanLyThueXe;
 USE QuanLyThueXe;
 
@@ -91,22 +91,29 @@ SET IDENTITY_INSERT [dbo].[KhachHang] OFF
 
 Go
 INSERT [dbo]. [LoaiXe]([MaLoai],[TenLoai]) VALUES ('4C', N'4 Chỗ')
+INSERT [dbo]. [LoaiXe]([MaLoai],[TenLoai]) VALUES ('7C', N'7 Chỗ')
 
 
 SET IDENTITY_INSERT [dbo].[ThongTinXe] ON 
 INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES (1, 'Honda CiVic', 4, '', 'NV001', '4c')
+INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES (2, 'VinFast', 2, '', 'NV001', '4c')
+INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES ('3', 'HuynDai', 2, '', 'NV001', '7C')
+INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES ('4', 'Ford', 2, '', 'NV001', '7C')
 SET IDENTITY_INSERT [dbo].[ThongTinXe] OFF
-
+select * from ThongTinXe
 SET IDENTITY_INSERT [dbo].[HoaDonChiTiet] ON 
 INSERT [dbo].[HoaDonChiTiet]([MaHDCT],[MaHD],[MaXe],[NgayDat],[NgayTra],[SoLuongThue],[GiaThue],[GhiChu]) VALUES(1,'HD001',1,'2023-11-02','2023-11-10',4,'600000', N'4000KM - Trầy nhẹ bên cửa phụ')
 INSERT [dbo].[HoaDonChiTiet]([MaHDCT],[MaHD],[MaXe],[NgayDat],[NgayTra],[SoLuongThue],[GiaThue],[GhiChu]) VALUES(2,'HD002',1,'2023-09-12','2023-09-20',2,'600000', N'5000KM')
 INSERT [dbo].[HoaDonChiTiet]([MaHDCT],[MaHD],[MaXe],[NgayDat],[NgayTra],[SoLuongThue],[GiaThue],[GhiChu]) VALUES(3,'HD003',1,'2023-09-12','2023-09-20',2,'600000', N'5000KM')
+INSERT [dbo].[HoaDonChiTiet]([MaHDCT],[MaHD],[MaXe],[NgayDat],[NgayTra],[SoLuongThue],[GiaThue],[GhiChu]) VALUES(4,'HD002',2,'2023-09-12','2023-09-20',2,'500000', N'5000KM')
+INSERT [dbo].[HoaDonChiTiet]([MaHDCT],[MaHD],[MaXe],[NgayDat],[NgayTra],[SoLuongThue],[GiaThue],[GhiChu]) VALUES(5,'HD004',2,'2023-09-12','2023-09-20',2,'500000', N'5000KM')
 SET IDENTITY_INSERT [dbo].[HoaDonChiTiet] OFF
 
 Go
 INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TrangThai],[TongTien])VALUES ('HD001', 1,'NV001', '2023-10-29',N'Đã thanh toán','21600000')
 INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TrangThai],[TongTien])VALUES ('HD002', 2,'NV001', '2023-09-09',N'Chưa thanh toán','10800000')
 INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TrangThai],[TongTien])VALUES ('HD003', 1,'NV002', '2023-09-09',N'Chưa thanh toán','10800000')
+INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TrangThai],[TongTien])VALUES ('HD004', 1,'NV002', '2023-09-11',N'Chưa thanh toán','10800000')
 
 
 
@@ -119,34 +126,22 @@ select * from HoaDonChiTiet
 
 
     -- Thống kê doanh thu trong năm
-IF OBJECT_ID('Nam') IS NOT NULL
-DROP PROCEDURE sp_ThongKeDoanhThuNam
-
 CREATE PROCEDURE sp_ThongKeDoanhThuTheoThang
-    @Thang INT,
-    @Nam INT
 AS
 BEGIN
-    DECLARE @TongDoanhThu DECIMAL(18, 2)
-    DECLARE @DoanhThuThapNhat DECIMAL(18, 2)
-    DECLARE @DoanhThuCaoNhat DECIMAL(18, 2)
-
     SELECT
-        @TongDoanhThu = SUM(hd.TongTien),
-        @DoanhThuThapNhat = MIN(hd.TongTien),
-        @DoanhThuCaoNhat = MAX(hd.TongTien)
-    FROM HoaDonChiTiet hdc
-    JOIN HoaDon hd ON hdc.MaHD = hd.MaHD
-    WHERE YEAR(hd.NgayTao) = @Nam
-        AND MONTH(hd.NgayTao) = @Thang
+        FORMAT(hd.NgayTao, 'MM-yyyy') AS ThoiGian,
+        MIN(TongTien) AS DoanhThuTN,
+        MAX(TongTien) AS DoanhThuCN,
+        SUM(TongTien) AS TongTien
+    FROM 
+        HoaDon hd 
+    JOIN 
+        HoaDonChiTiet hdct ON hd.MaHD = hdct.MaHD
+    GROUP BY
+        FORMAT(hd.NgayTao, 'MM-yyyy');
+END;
 
-    SELECT
-        @Thang AS Thang,
-        @Nam AS Nam,
-        @TongDoanhThu AS TongDoanhThu,
-        @DoanhThuThapNhat AS DoanhThuThapNhat,
-        @DoanhThuCaoNhat AS DoanhThuCaoNhat;
-END
 
 --Doanh thu theo xe
 CREATE PROCEDURE sp_DoanhThuXe 
@@ -213,8 +208,50 @@ BEGIN
         @DoanhThu AS DoanhThu;
 END;
 
+--Thống kê thời gian
+CREATE PROCEDURE sp_LocDoanhThuTheoThang(@NgayBD DATE, @NgayKT DATE)
+AS
+BEGIN
+    -- Trả về ngày đầu tiên của tháng của @NgayBD
+    SET @NgayBD = DATEADD(MONTH, DATEDIFF(MONTH, 0, @NgayBD), 0);
+
+    -- Trả về ngày cuối cùng của tháng của @NgayKT
+    SET @NgayKT = DATEADD(MONTH, DATEDIFF(MONTH, 0, @NgayKT) + 1, 0) - 1;
+
+    SELECT
+        FORMAT(hd.NgayTao, 'MM-yyyy') AS ThoiGian,
+        MIN(TongTien) AS DoanhThuTN,
+        MAX(TongTien) AS DoanhThuCN,
+        SUM(TongTien) AS TongTien
+    FROM 
+        HoaDon hd 
+    JOIN 
+        HoaDonChiTiet hdct ON hd.MaHD = hdct.MaHD
+    WHERE 
+        CONVERT(DATE, hd.NgayTao, 103) >= @NgayBD
+        AND CONVERT(DATE, hd.NgayTao, 103) <= @NgayKT
+    GROUP BY
+        FORMAT(hd.NgayTao, 'MM-yyyy');
+END
 
 
+
+	SELECT
+    FORMAT(hd.NgayTao, 'MM-yyyy') AS ThoiGian,
+    MIN(TongTien) AS DoanhThuTN,
+    MAX(TongTien) AS DoanhThuCN,
+    SUM(TongTien) AS TongTien
+FROM 
+    HoaDon hd 
+JOIN 
+    HoaDonChiTiet hdct ON hd.MaHD = hdct.MaHD
+WHERE 
+    hd.NgayTao >= '2023-08-01'
+    AND hd.NgayTao < '2023-10-01'  -- Thêm một ngày sau để đảm bảo rằng không có mất mát dữ liệu trong tháng 9
+GROUP BY
+    FORMAT(hd.NgayTao, 'MM-yyyy');
+
+	END
 
 select * from NhanVien
 select * from KhachHang

@@ -8,7 +8,9 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.time.LocalDate;
 import javax.swing.JFrame;
+import java.sql.Date;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -39,35 +41,77 @@ public class BD_DoanhThu extends javax.swing.JPanel {
     public static DefaultCategoryDataset createDataset() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
-        try {
-            Connection conn = getConnection();
+        try (Connection conn = getConnection()) {
+            // Replace this value with the appropriate year
+            int nam = 2023;
 
-            for (int nam = 2023; nam <= 2023; nam++) {
-                for (int thang = 1; thang <= 12; thang++) {
-                    // Truyền ngày, tháng, và năm cho thủ tục
-                    String query = "EXEC sp_ThongKeDoanhThu ?, ?";
-                    PreparedStatement ps = conn.prepareStatement(query);
-                    ps.setInt(1, thang);
-                    ps.setInt(2, nam);
-                    ResultSet rs = ps.executeQuery();
+            // Truyền ngày, tháng, và năm cho thủ tục
+            String query = "EXEC sp_ThongKeDoanhThuTheoThang";
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
+                try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        dataset.addValue(rs.getDouble("TongDoanhThu"), "Tổng Doanh thu", String.format("%02d/%04d", thang, nam));
-                        dataset.addValue(rs.getDouble("DoanhThuThapNhat"), "Doanh thu thấp nhất", String.format("%02d/%04d", thang, nam));
-                        dataset.addValue(rs.getDouble("DoanhThuCaoNhat"), "Doanh thu cao nhất", String.format("%02d/%04d", thang, nam));
+                        // Ensure column names match the names returned by the stored procedure
+                        dataset.addValue(rs.getDouble("TongTien"), "Tổng Doanh thu", rs.getString("ThoiGian"));
+                        dataset.addValue(rs.getDouble("DoanhThuTN"), "Doanh thu thấp nhất", rs.getString("ThoiGian"));
+                        dataset.addValue(rs.getDouble("DoanhThuCN"), "Doanh thu cao nhất", rs.getString("ThoiGian"));
                     }
                 }
             }
-            conn.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+        return dataset;
+    }
 
+    public static DefaultCategoryDataset createDatasetLoc() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+
+        try (Connection conn = getConnection()) {
+            int nam = 2023;
+
+            // Truyền ngày, tháng, và năm cho thủ tục
+            String query = "EXEC sp_LocDoanhThuTheoThang ?, ?";
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
+                // Assuming you want to filter by the first day of the year and the last day of the year
+                LocalDate ngayBD = LocalDate.of(nam, 1, 1);
+                LocalDate ngayKT = LocalDate.of(nam, 12, 31);
+
+                ps.setDate(1, Date.valueOf(ngayBD));
+                ps.setDate(2, Date.valueOf(ngayKT));
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        // Ensure column names match the names returned by the stored procedure
+                        dataset.addValue(rs.getDouble("TongTien"), "Tổng Doanh thu", rs.getString("ThoiGian"));
+                        dataset.addValue(rs.getDouble("DoanhThuTN"), "Doanh thu thấp nhất", rs.getString("ThoiGian"));
+                        dataset.addValue(rs.getDouble("DoanhThuCN"), "Doanh thu cao nhất", rs.getString("ThoiGian"));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return dataset;
     }
 
     public static JFreeChart createBarChart() {
         JFreeChart barChart = ChartFactory.createBarChart(
                 "Biểu đồ doanh thu theo Tháng - Năm", "Tháng - Năm", "Doanh thu", createDataset(),
+                PlotOrientation.VERTICAL, true, true, false);
+
+        JFrame frame = new JFrame();
+        ChartPanel chartPanel = new ChartPanel(barChart);
+        frame.add(chartPanel);
+        frame.setSize(420, 260);
+        frame.setLocationRelativeTo(null);
+        frame.setResizable(true);
+//        frame.setVisible(true);
+        return barChart;
+    }
+
+    public static JFreeChart createBarChartLoc() {
+        JFreeChart barChart = ChartFactory.createBarChart(
+                "Biểu đồ doanh thu theo Tháng - Năm", "Tháng - Năm", "Doanh thu", createDatasetLoc(),
                 PlotOrientation.VERTICAL, true, true, false);
 
         JFrame frame = new JFrame();
@@ -96,8 +140,9 @@ public class BD_DoanhThu extends javax.swing.JPanel {
         );
     }// </editor-fold>//GEN-END:initComponents
 //
+
 //    public static void main(String[] args) {
-//        createBarChart();
+//        createBarChartLoc();
 //    }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables

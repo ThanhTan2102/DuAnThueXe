@@ -4,12 +4,15 @@
  */
 package com.thongke;
 
-import javax.swing.JFrame;
+import static com.thongke.BD_HoaDon.createDataset;
+import static com.thongke.BD_HoaDon.createLineChart;
+
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
+import org.jfree.data.category.CategoryDataset;
 
 /**
  *
@@ -33,25 +36,29 @@ public class DoanhThuHoaDon extends javax.swing.JFrame {
         tblHoaDon.getColumnModel().getColumn(1).setCellRenderer(render);
         tblHoaDon.getColumnModel().getColumn(2).setCellRenderer(render);
         tblHoaDon.getColumnModel().getColumn(3).setCellRenderer(render);
+        CategoryDataset dataset = createDataset(2023);
 //        pnBD1 = new JPanel(); // Tạo JPanel pnBD
 //        pnBD1.add(panelBieuDo()); // Thêm biểu đồ vào pnBD
 //        add(pnBD1); // Thêm pnBD vào JFrame
 //        showPanel(new BD_HoaDon());
-        showPanel(panelBieuDo());
+        JPanel bieuDoPanel = panelBieuDo(dataset);
+        showPanel(panelBieuDo(dataset));
     }
-    private JFreeChart barChart;
 
-    private JPanel panelBieuDo() {
-        if (barChart == null) {
-            BD_HoaDon bdhd = new BD_HoaDon();
-//            barChart = bdhd.createBarChart();
+    
+    
+    private JFreeChart lineChart;
+
+    private JPanel panelBieuDo(CategoryDataset dataset) {
+        if (lineChart == null) {
+            lineChart = createLineChart(dataset);  // Truyền dataset vào phương thức
         }
-        ChartPanel chartPanel = new ChartPanel(barChart);
+        ChartPanel chartPanel = new ChartPanel(lineChart);
         chartPanel.setPreferredSize(new java.awt.Dimension(435, 285));
 
         return chartPanel;
     }
-
+    
     private void showPanel(JPanel panel) {
         pnBD = panel;
         pnBieuDo.removeAll();

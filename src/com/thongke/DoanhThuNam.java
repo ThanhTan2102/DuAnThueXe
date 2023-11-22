@@ -4,10 +4,23 @@
  */
 package com.thongke;
 
+import com.DAO.ThongKeDAO;
+import static com.utils.JDBC.conn;
+import com.utils.XDate;
+import com.utils.XExcel;
+import java.text.SimpleDateFormat;
+import java.time.DateTimeException;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.time.LocalDate;
+import java.time.Month;
+import java.time.ZoneId;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 
@@ -16,16 +29,18 @@ import org.jfree.chart.JFreeChart;
  * @author ASUS
  */
 public class DoanhThuNam extends javax.swing.JFrame {
-    
+
+    ThongKeDAO tkDAO = new ThongKeDAO();
     private JPanel pnBD;
-    
+    SimpleDateFormat dateFormat = new SimpleDateFormat("MM-yyyy");
+
     public DoanhThuNam() {
         initComponents();
 //        ChartFramee.setVisible(true);
-        this.init();
+        init();
     }
-    
-    void init() {
+
+    private void init() {
         DefaultTableCellRenderer render = new DefaultTableCellRenderer();
         render.setHorizontalAlignment(javax.swing.JLabel.CENTER);
         DefaultTableCellRenderer headerRenderer = (DefaultTableCellRenderer) tblDoanhThu.getTableHeader().getDefaultRenderer();
@@ -33,27 +48,104 @@ public class DoanhThuNam extends javax.swing.JFrame {
         tblDoanhThu.getColumnModel().getColumn(0).setCellRenderer(render);
         tblDoanhThu.getColumnModel().getColumn(1).setCellRenderer(render);
         tblDoanhThu.getColumnModel().getColumn(2).setCellRenderer(render);
+        tblDoanhThu.getColumnModel().getColumn(3).setCellRenderer(render);
         showPanel(panelBieuDo());
+        fillTable();
     }
+
+    private void fillTable() {
+        try {
+            DefaultTableModel model = new DefaultTableModel();
+            model.setColumnIdentifiers(new Object[]{"Thời Gian", "Doanh Thu TN", "Doanh Thu CN", "Tổng Doanh Thu"});
+            List<Object[]> result = tkDAO.getDoanhThuNam();
+
+            for (Object[] row : result) {
+                String thoiGian = "";
+                if (row[0] != null) {
+                    if (row[0] instanceof Date) {
+                        thoiGian = new SimpleDateFormat("MM-yyyy").format((Date) row[0]);
+                    } else if (row[0] instanceof String) {
+                        thoiGian = (String) row[0];
+                    }
+                }
+                model.addRow(new Object[]{
+                    thoiGian,
+                    String.format("%.1f", row[1]),
+                    String.format("%.1f", row[2]),
+                    String.format("%.1f", row[3])
+                });
+            }
+
+            tblDoanhThu.setModel(model);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void fillTableLoc() {
+        if (startDate.getDate() == null) {
+            lblLoi.setText("Ngày bắt đầu không được để trống !");
+            lblLoi1.setText(" ");
+            return;
+        } else if (endDate.getDate() == null) {
+            lblLoi.setText(" ");
+            lblLoi1.setText("Ngày kết thúc không được để trống !");
+        } else {
+            try {
+                DefaultTableModel model = (DefaultTableModel) tblDoanhThu.getModel();
+                model.setColumnIdentifiers(new Object[]{"Thời Gian", "Doanh Thu TN", "Doanh Thu CN", "Tổng Doanh Thu"});
+                model.setRowCount(0);
+
+                LocalDate ngayBD = startDate.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                LocalDate ngayKT = endDate.getDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+                List<Object[]> list = tkDAO.getLocDoanhThu(ngayBD, ngayKT);
+
+                for (Object[] row : list) {
+                    model.addRow(new Object[]{
+                        row[0], // Assuming row[0] is ThoiGian
+                        String.format("%.1f", row[1]),
+                        String.format("%.1f", row[2]),
+                        String.format("%.1f", row[3])
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+
+            }
+            lblLoi.setText(" ");
+            lblLoi1.setText(" ");
+        }
+    }
+
     private JFreeChart barChart;
-    
+
     private void showPanel(JPanel panel) {
         pnBD = panel;
         pnBieuDo.removeAll();
         pnBieuDo.add(pnBD);
         pnBieuDo.validate();
     }
-    
+
     private JPanel panelBieuDo() {
         if (barChart == null) {
             BD_DoanhThu bddt = new BD_DoanhThu();
             barChart = bddt.createBarChart();
         }
         ChartPanel chartPanel = new ChartPanel(barChart);
-        chartPanel.setPreferredSize(new java.awt.Dimension(440,260));
+        chartPanel.setPreferredSize(new java.awt.Dimension(440, 260));
         return chartPanel;
     }
-    
+
+//    private JPanel panelBieuDoLoc() {
+//        if (barChart == null) {
+//            BD_DoanhThu bddt1 = new BD_DoanhThu();
+//            barChart = bddt1.createBarChartLoc();
+//        }
+//        ChartPanel chartPanel = new ChartPanel(barChart);
+//        chartPanel.setPreferredSize(new java.awt.Dimension(440, 260));
+//        return chartPanel;
+//    }
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -63,12 +155,14 @@ public class DoanhThuNam extends javax.swing.JFrame {
         pnBang = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         tblDoanhThu = new javax.swing.JTable();
-        jButton1 = new javax.swing.JButton();
-        jDateChooser1 = new com.toedter.calendar.JDateChooser();
-        jDateChooser2 = new com.toedter.calendar.JDateChooser();
+        btnXuat = new javax.swing.JButton();
+        endDate = new com.toedter.calendar.JDateChooser();
+        startDate = new com.toedter.calendar.JDateChooser();
         jLabel3 = new javax.swing.JLabel();
-        jButton2 = new javax.swing.JButton();
+        btnThongKe = new javax.swing.JButton();
         pnBieuDo = new javax.swing.JPanel();
+        lblLoi = new javax.swing.JLabel();
+        lblLoi1 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setPreferredSize(new java.awt.Dimension(900, 600));
@@ -87,13 +181,13 @@ public class DoanhThuNam extends javax.swing.JFrame {
         tblDoanhThu.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
         tblDoanhThu.setModel(new javax.swing.table.DefaultTableModel(
             new Object [][] {
-                {null, null, null},
-                {null, null, null},
-                {null, null, null},
-                {null, null, null}
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null},
+                {null, null, null, null}
             },
             new String [] {
-                "Doanh thu TN", "Doanh thu CN", "Tổng doanh thu"
+                "Thời gian", "Doanh thu TN", "Doanh thu CN", "Tổng doanh thu"
             }
         ));
         tblDoanhThu.setColumnSelectionAllowed(true);
@@ -101,105 +195,153 @@ public class DoanhThuNam extends javax.swing.JFrame {
         jScrollPane1.setViewportView(tblDoanhThu);
         tblDoanhThu.getColumnModel().getSelectionModel().setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
 
-        jButton1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jButton1.setText("XUẤT EXCEL");
+        btnXuat.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btnXuat.setText("XUẤT EXCEL");
+        btnXuat.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnXuatActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout pnBangLayout = new javax.swing.GroupLayout(pnBang);
         pnBang.setLayout(pnBangLayout);
         pnBangLayout.setHorizontalGroup(
             pnBangLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(pnBangLayout.createSequentialGroup()
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jButton1)
+                .addGroup(pnBangLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 835, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, pnBangLayout.createSequentialGroup()
+                        .addGap(0, 0, Short.MAX_VALUE)
+                        .addComponent(btnXuat)))
                 .addContainerGap())
-            .addGroup(pnBangLayout.createSequentialGroup()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 384, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
         );
         pnBangLayout.setVerticalGroup(
             pnBangLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(pnBangLayout.createSequentialGroup()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 241, Short.MAX_VALUE)
-                .addGap(18, 18, 18)
-                .addComponent(jButton1)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 120, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btnXuat)
                 .addContainerGap())
         );
 
-        jDateChooser1.setDateFormatString("MM-yyyy");
-        jDateChooser1.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        endDate.setDateFormatString("MM-yyyy");
+        endDate.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
 
-        jDateChooser2.setDateFormatString("MM-yyyy");
-        jDateChooser2.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        startDate.setDateFormatString("MM-yyyy");
+        startDate.setFont(new java.awt.Font("Segoe UI", 0, 14)); // NOI18N
+        startDate.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                startDateKeyReleased(evt);
+            }
+        });
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 24)); // NOI18N
         jLabel3.setForeground(new java.awt.Color(255, 255, 255));
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         jLabel3.setText("~");
 
-        jButton2.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
-        jButton2.setText("THỐNG KÊ");
+        btnThongKe.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
+        btnThongKe.setText("THỐNG KÊ");
+        btnThongKe.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnThongKeActionPerformed(evt);
+            }
+        });
 
         pnBieuDo.setBorder(javax.swing.BorderFactory.createEtchedBorder());
         pnBieuDo.setOpaque(false);
         pnBieuDo.setLayout(new java.awt.BorderLayout());
+
+        lblLoi.setForeground(new java.awt.Color(255, 0, 0));
+        lblLoi.setText(" ");
+        lblLoi.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
+
+        lblLoi1.setForeground(new java.awt.Color(255, 0, 0));
+        lblLoi1.setText(" ");
+        lblLoi1.setBorder(javax.swing.BorderFactory.createEmptyBorder(1, 1, 1, 1));
 
         javax.swing.GroupLayout blue2Layout = new javax.swing.GroupLayout(blue2);
         blue2.setLayout(blue2Layout);
         blue2Layout.setHorizontalGroup(
             blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(blue2Layout.createSequentialGroup()
+                .addContainerGap()
                 .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addComponent(pnBang, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(pnBieuDo, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     .addGroup(blue2Layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(pnBang, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(pnBieuDo, javax.swing.GroupLayout.PREFERRED_SIZE, 418, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(blue2Layout.createSequentialGroup()
-                        .addGap(27, 27, 27)
                         .addComponent(jLabel2)
                         .addGap(18, 18, 18)
-                        .addComponent(jDateChooser2, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(blue2Layout.createSequentialGroup()
+                                .addComponent(startDate, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(blue2Layout.createSequentialGroup()
+                                .addGap(6, 6, 6)
+                                .addComponent(lblLoi, javax.swing.GroupLayout.PREFERRED_SIZE, 205, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addGap(18, 18, 18)
-                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(jDateChooser1, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(jButton2)))
-                .addContainerGap(14, Short.MAX_VALUE))
+                        .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(blue2Layout.createSequentialGroup()
+                                .addComponent(endDate, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(18, 18, 18)
+                                .addComponent(btnThongKe))
+                            .addGroup(blue2Layout.createSequentialGroup()
+                                .addGap(6, 6, 6)
+                                .addComponent(lblLoi1, javax.swing.GroupLayout.PREFERRED_SIZE, 205, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                .addContainerGap(28, Short.MAX_VALUE))
         );
         blue2Layout.setVerticalGroup(
             blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(blue2Layout.createSequentialGroup()
-                .addGap(31, 31, 31)
+                .addContainerGap()
                 .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(jDateChooser1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(jDateChooser2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(endDate, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btnThongKe, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(startDate, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(36, 36, 36)
-                .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(pnBieuDo, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(pnBang, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(69, Short.MAX_VALUE))
+                    .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 27, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(7, 7, 7)
+                .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblLoi)
+                    .addComponent(lblLoi1))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(pnBang, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(pnBieuDo, javax.swing.GroupLayout.PREFERRED_SIZE, 191, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(36, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(blue2, javax.swing.GroupLayout.DEFAULT_SIZE, 850, Short.MAX_VALUE)
+            .addComponent(blue2, javax.swing.GroupLayout.DEFAULT_SIZE, 885, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(blue2, javax.swing.GroupLayout.DEFAULT_SIZE, 482, Short.MAX_VALUE)
+            .addComponent(blue2, javax.swing.GroupLayout.DEFAULT_SIZE, 489, Short.MAX_VALUE)
         );
 
         pack();
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
-    
+    private void btnThongKeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnThongKeActionPerformed
+        fillTableLoc();
+    }//GEN-LAST:event_btnThongKeActionPerformed
+
+    private void startDateKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_startDateKeyReleased
+        if (startDate.getDate() == null) {
+            lblLoi.setText("Không để trống");
+        }
+    }//GEN-LAST:event_startDateKeyReleased
+
+    private void btnXuatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnXuatActionPerformed
+        XExcel.writeToExcel(tblDoanhThu, "Doanh Thu");
+    }//GEN-LAST:event_btnXuatActionPerformed
+
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
@@ -211,16 +353,24 @@ public class DoanhThuNam extends javax.swing.JFrame {
                 if ("Nimbus".equals(info.getName())) {
                     javax.swing.UIManager.setLookAndFeel(info.getClassName());
                     break;
+
                 }
             }
         } catch (ClassNotFoundException ex) {
-            java.util.logging.Logger.getLogger(DoanhThuNam.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(DoanhThuNam.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
+
         } catch (InstantiationException ex) {
-            java.util.logging.Logger.getLogger(DoanhThuNam.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(DoanhThuNam.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
+
         } catch (IllegalAccessException ex) {
-            java.util.logging.Logger.getLogger(DoanhThuNam.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(DoanhThuNam.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
+
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
-            java.util.logging.Logger.getLogger(DoanhThuNam.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
+            java.util.logging.Logger.getLogger(DoanhThuNam.class
+                    .getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
         //</editor-fold>
         //</editor-fold>
@@ -241,15 +391,17 @@ public class DoanhThuNam extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private com.color.Blue blue2;
-    private javax.swing.JButton jButton1;
-    private javax.swing.JButton jButton2;
-    private com.toedter.calendar.JDateChooser jDateChooser1;
-    private com.toedter.calendar.JDateChooser jDateChooser2;
+    private javax.swing.JButton btnThongKe;
+    private javax.swing.JButton btnXuat;
+    private com.toedter.calendar.JDateChooser endDate;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JLabel lblLoi;
+    private javax.swing.JLabel lblLoi1;
     private javax.swing.JPanel pnBang;
     private javax.swing.JPanel pnBieuDo;
+    private com.toedter.calendar.JDateChooser startDate;
     private javax.swing.JTable tblDoanhThu;
     // End of variables declaration//GEN-END:variables
 }

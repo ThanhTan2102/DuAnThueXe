@@ -4,16 +4,25 @@
  */
 package com.thongke;
 
+import javax.swing.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import javax.swing.JFrame;
+
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.CategoryLabelPositions;
+//import org.jfree.chart.axis.CategoryAxis;
+import org.jfree.chart.axis.SymbolAxis;
+import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.CategoryPlot;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.category.LineAndShapeRenderer;
+import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
 
 public class BD_HoaDon extends javax.swing.JPanel {
@@ -39,18 +48,24 @@ public class BD_HoaDon extends javax.swing.JPanel {
         return conn;
     }
 
-    public static DefaultCategoryDataset createDataset(int selectedMonth, int selectedYear) {
+    public static CategoryDataset createDataset(int nam) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
         try (Connection conn = getConnection()) {
-            String query = "EXEC sp_DoanhThuTheoHoaDon ?, ?";
-            try (PreparedStatement ps = conn.prepareStatement(query)) {
-                ps.setInt(1, selectedMonth);
-                ps.setInt(2, selectedYear);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
+            // Thay đổi truy vấn để lấy dữ liệu cho tất cả các tháng trong năm
+            String query = "EXEC sp_ThongKeHoaDon ?, ?";
+            for (int thang = 1; thang <= 12; thang++) {
+                try (PreparedStatement ps = conn.prepareStatement(query)) {
+                    ps.setInt(1, thang);
+                    ps.setInt(2, nam);
+                    try (ResultSet rs = ps.executeQuery()) {
                         while (rs.next()) {
-                            dataset.addValue(rs.getDouble("DoanhThu"), "Tổng Doanh thu", String.format("%02d/%04d", selectedMonth, selectedYear));
+                            int soLuongHoaDon = rs.getInt("SoLuongHoaDon");
+                            double doanhThu = rs.getDouble("DoanhThu");
+
+                            // Thêm dữ liệu vào dataset
+                            dataset.addValue(soLuongHoaDon, "Số Lượng Hóa Đơn", String.valueOf(thang));
+                            dataset.addValue(doanhThu, "Doanh Thu", String.valueOf(thang));
                         }
                     }
                 }
@@ -62,26 +77,42 @@ public class BD_HoaDon extends javax.swing.JPanel {
         return dataset;
     }
 
-    public static JFreeChart createBarChart(int selectedMonth, int selectedYear) {
-        JFreeChart barChart = ChartFactory.createBarChart(
-                "Biểu đồ doanh thu theo Tháng - Năm", "Tháng - Năm", "Hóa đơn",
-                createDataset(selectedMonth, selectedYear), PlotOrientation.VERTICAL, true, true, false);
+    public static JFreeChart createLineChart(CategoryDataset dataset) {
+        JFreeChart lineChart = ChartFactory.createLineChart(
+                "Biểu đồ Thống kê Hóa Đơn", "Tháng", "Số liệu",
+                dataset, PlotOrientation.VERTICAL, true, true, false);
 
+        // Tùy chỉnh trục x để hiển thị các tháng
+        CategoryPlot plot = (CategoryPlot) lineChart.getPlot();
+        CategoryAxis xAxis = plot.getDomainAxis();
+        xAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
+
+        // Tùy chỉnh biểu đồ
+        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+        rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+
+        // Hiển thị điểm trên đường
+        LineAndShapeRenderer renderer = new LineAndShapeRenderer();
+        plot.setRenderer(renderer);
+        renderer.setSeriesShapesVisible(0, true);
+
+        return lineChart;
+    }
+
+    public static void main(String[] args) {
+        int nam = 2023; // Thay đổi theo năm mong muốn
+
+        CategoryDataset dataset = createDataset(nam);
+        JFreeChart lineChart = createLineChart(dataset);
+
+        // Hiển thị biểu đồ trong một cửa sổ
         JFrame frame = new JFrame();
-        ChartPanel chartPanel = new ChartPanel(barChart);
+        ChartPanel chartPanel = new ChartPanel(lineChart);
         frame.add(chartPanel);
         frame.setSize(420, 260);
         frame.setLocationRelativeTo(null);
         frame.setResizable(true);
         frame.setVisible(true);
-
-        return barChart;
-    }
-
-    public static void main(String[] args) {
-//        int selectedMonth = [1,2,3,4,5,6,7,8,9,11,12]; // Replace with the desired month
-        int selectedYear = 2023; // Replace with the desired year
-//        createBarChart(selectedMonth, selectedYear);
     }
 
     @SuppressWarnings("unchecked")
