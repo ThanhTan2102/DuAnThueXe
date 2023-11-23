@@ -4,26 +4,27 @@
  */
 package com.thongke;
 
-import javax.swing.*;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import javax.swing.JFrame;
-
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.CategoryLabelPositions;
-//import org.jfree.chart.axis.CategoryAxis;
-import org.jfree.chart.axis.SymbolAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.renderer.category.LineAndShapeRenderer;
 import org.jfree.data.category.CategoryDataset;
 import org.jfree.data.category.DefaultCategoryDataset;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+import javax.swing.*;
+import org.jfree.chart.axis.AxisLocation;
+import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.renderer.category.BarRenderer;
 
 public class BD_HoaDon extends javax.swing.JPanel {
 
@@ -48,25 +49,20 @@ public class BD_HoaDon extends javax.swing.JPanel {
         return conn;
     }
 
-    public static CategoryDataset createDataset(int nam) {
+    public static CategoryDataset createDataset() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
         try (Connection conn = getConnection()) {
-            // Thay đổi truy vấn để lấy dữ liệu cho tất cả các tháng trong năm
-            String query = "EXEC sp_ThongKeHoaDon ?, ?";
-            for (int thang = 1; thang <= 12; thang++) {
-                try (PreparedStatement ps = conn.prepareStatement(query)) {
-                    ps.setInt(1, thang);
-                    ps.setInt(2, nam);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        while (rs.next()) {
-                            int soLuongHoaDon = rs.getInt("SoLuongHoaDon");
-                            double doanhThu = rs.getDouble("DoanhThu");
+            String query = "{CALL sp_ThongKeHoaDon}";
+            try (PreparedStatement ps = conn.prepareCall(query)) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        String thoiGian = rs.getString("ThoiGian");
+                        int soLuongHD = rs.getInt("SoLuongHD");
+                        int doanhThu = rs.getInt("DoanhThu");
 
-                            // Thêm dữ liệu vào dataset
-                            dataset.addValue(soLuongHoaDon, "Số Lượng Hóa Đơn", String.valueOf(thang));
-                            dataset.addValue(doanhThu, "Doanh Thu", String.valueOf(thang));
-                        }
+                        dataset.addValue(soLuongHD, "Số Lượng", thoiGian);
+                        dataset.addValue(doanhThu, "Doanh Thu", thoiGian);
                     }
                 }
             }
@@ -77,41 +73,48 @@ public class BD_HoaDon extends javax.swing.JPanel {
         return dataset;
     }
 
-    public static JFreeChart createLineChart(CategoryDataset dataset) {
-        JFreeChart lineChart = ChartFactory.createLineChart(
-                "Biểu đồ Thống kê Hóa Đơn", "Tháng", "Số liệu",
+    public static JFreeChart taoBieuDoDuongHaiTruc(CategoryDataset dataset) {
+        JFreeChart bieuDoDuongHaiTruc = ChartFactory.createLineChart(
+                "Biểu đồ Thống kê Hóa Đơn", "Thời Gian", "Số liệu",
                 dataset, PlotOrientation.VERTICAL, true, true, false);
 
-        // Tùy chỉnh trục x để hiển thị các tháng
-        CategoryPlot plot = (CategoryPlot) lineChart.getPlot();
-        CategoryAxis xAxis = plot.getDomainAxis();
-        xAxis.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
+        CategoryPlot plot = bieuDoDuongHaiTruc.getCategoryPlot();
+        CategoryAxis trucX = plot.getDomainAxis();
+        trucX.setCategoryLabelPositions(CategoryLabelPositions.UP_45);
 
-        // Tùy chỉnh biểu đồ
-        NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
-        rangeAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+        NumberAxis trucY1 = new NumberAxis("Số Lượng");
+        trucY1.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+        trucY1.setRange(1, 100); // Thiết lập phạm vi cho trục y bên trái
+        trucY1.setTickUnit(new NumberTickUnit(5)); // Thiết lập đơn vị chia cho trục y bên trái
+        plot.setRangeAxis(0, trucY1);
 
-        // Hiển thị điểm trên đường
-        LineAndShapeRenderer renderer = new LineAndShapeRenderer();
-        plot.setRenderer(renderer);
-        renderer.setSeriesShapesVisible(0, true);
+        LineAndShapeRenderer rendererDuong1 = new LineAndShapeRenderer();
+        plot.setRenderer(0, rendererDuong1);
+        plot.mapDatasetToRangeAxis(0, 0);
 
-        return lineChart;
+        NumberAxis trucY2 = new NumberAxis("Doanh Thu");
+        plot.setRangeAxis(1, trucY2);
+        plot.setRangeAxisLocation(1, AxisLocation.BOTTOM_OR_RIGHT);
+
+        LineAndShapeRenderer rendererDuong2 = new LineAndShapeRenderer();
+        plot.setDataset(1, plot.getDataset(0)); // Sử dụng cùng bộ dữ liệu cho loại đồ thị đường
+        plot.setRenderer(1, rendererDuong2);
+        plot.mapDatasetToRangeAxis(1, 1);
+
+        return bieuDoDuongHaiTruc;
     }
 
     public static void main(String[] args) {
-        int nam = 2023; // Thay đổi theo năm mong muốn
+        CategoryDataset dataset = createDataset();
+        JFreeChart dualAxisLineChart = taoBieuDoDuongHaiTruc(dataset);
 
-        CategoryDataset dataset = createDataset(nam);
-        JFreeChart lineChart = createLineChart(dataset);
-
-        // Hiển thị biểu đồ trong một cửa sổ
+        // Display the chart in a JFrame
         JFrame frame = new JFrame();
-        ChartPanel chartPanel = new ChartPanel(lineChart);
+        ChartPanel chartPanel = new ChartPanel(dualAxisLineChart);
         frame.add(chartPanel);
-        frame.setSize(420, 260);
+        frame.setSize(800, 500);
         frame.setLocationRelativeTo(null);
-        frame.setResizable(true);
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setVisible(true);
     }
 

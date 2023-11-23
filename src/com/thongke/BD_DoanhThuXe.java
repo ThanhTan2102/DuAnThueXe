@@ -40,22 +40,18 @@ public class BD_DoanhThuXe extends javax.swing.JPanel {
         return conn;
     }
 
-    public static CategoryDataset createDataset(int[] maXes, int ThangBD, int ThangKT, int Nam) {
+    public static CategoryDataset createDataset(int[] maXes) {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
         try (Connection conn = getConnection()) {
             for (int maXe : maXes) {
-                for (int currentMonth = ThangBD; currentMonth <= ThangKT; currentMonth++) {
-                    String query = "EXEC sp_DoanhThuXe ?, ?, ?";
-                    try (PreparedStatement ps = conn.prepareStatement(query)) {
-                        ps.setInt(1, maXe);
-                        ps.setInt(2, currentMonth);
-                        ps.setInt(3, Nam);
-                        try (ResultSet rs = ps.executeQuery()) {
-                            while (rs.next()) {
-                                double doanhThu = rs.getDouble("DoanhThu");
-                                dataset.addValue(doanhThu, "Doanh Thu - Xe " + maXe, String.format("%02d/%04d", currentMonth, Nam));
-                            }
+                String query = "EXEC sp_DoanhThuXe ?";
+                try (PreparedStatement ps = conn.prepareStatement(query)) {
+                    ps.setInt(1, maXe);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            double doanhThu = rs.getDouble("DoanhThuXe");
+                            dataset.addValue(doanhThu, "Doanh Thu - Xe " + maXe, rs.getString("ThoiGian"));
                         }
                     }
                 }
@@ -63,7 +59,6 @@ public class BD_DoanhThuXe extends javax.swing.JPanel {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
         return dataset;
     }
 
@@ -76,12 +71,9 @@ public class BD_DoanhThuXe extends javax.swing.JPanel {
     }
 
     public static void main(String[] args) {
-        int[] maXes = {1, 2,3,4}; // Thay đổi thành mã xe cụ thể hoặc danh sách mã xe
-        int startMonth = 1; // Thay đổi theo tháng bắt đầu mong muốn
-        int endMonth = 12; // Thay đổi theo tháng kết thúc mong muốn
-        int selectedYear = 2023; // Thay đổi theo năm mong muốn
+        int[] maXes = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}; // Thay đổi thành mã xe cụ thể hoặc danh sách mã xe
 
-        CategoryDataset dataset = createDataset(maXes, startMonth, endMonth, selectedYear);
+        CategoryDataset dataset = createDataset(maXes);
         JFreeChart barChart = createBarChart(dataset);
 
         // Hiển thị biểu đồ trong một cửa sổ

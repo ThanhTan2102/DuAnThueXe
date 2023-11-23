@@ -8,6 +8,7 @@ import com.DAO.ThongKeDAO;
 import static com.utils.JDBC.conn;
 import com.utils.XDate;
 import com.utils.XExcel;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.time.DateTimeException;
 import java.util.Calendar;
@@ -57,6 +58,7 @@ public class DoanhThuNam extends javax.swing.JFrame {
         try {
             DefaultTableModel model = new DefaultTableModel();
             model.setColumnIdentifiers(new Object[]{"Thời Gian", "Doanh Thu TN", "Doanh Thu CN", "Tổng Doanh Thu"});
+
             List<Object[]> result = tkDAO.getDoanhThuNam();
 
             for (Object[] row : result) {
@@ -68,15 +70,22 @@ public class DoanhThuNam extends javax.swing.JFrame {
                         thoiGian = (String) row[0];
                     }
                 }
+
+                NumberFormat numberFormat = NumberFormat.getInstance();
                 model.addRow(new Object[]{
                     thoiGian,
-                    String.format("%.1f", row[1]),
-                    String.format("%.1f", row[2]),
-                    String.format("%.1f", row[3])
+                    numberFormat.format(row[1]),
+                    numberFormat.format(row[2]),
+                    numberFormat.format(row[3])
                 });
             }
 
             tblDoanhThu.setModel(model);
+            DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+            centerRenderer.setHorizontalAlignment(DefaultTableCellRenderer.CENTER);
+            for (int i = 0; i < tblDoanhThu.getColumnCount(); i++) {
+                tblDoanhThu.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -90,6 +99,10 @@ public class DoanhThuNam extends javax.swing.JFrame {
         } else if (endDate.getDate() == null) {
             lblLoi.setText(" ");
             lblLoi1.setText("Ngày kết thúc không được để trống !");
+        } else if (startDate.getDate().after(endDate.getDate())) {
+            lblLoi.setText("Ngày bắt đầu phải trước ngày kết thúc !");
+            lblLoi1.setText(" ");
+            return;  // You should return here to avoid further execution if startDate is after endDate
         } else {
             try {
                 DefaultTableModel model = (DefaultTableModel) tblDoanhThu.getModel();
@@ -102,11 +115,12 @@ public class DoanhThuNam extends javax.swing.JFrame {
                 List<Object[]> list = tkDAO.getLocDoanhThu(ngayBD, ngayKT);
 
                 for (Object[] row : list) {
+                    NumberFormat numberFormat = NumberFormat.getInstance();
                     model.addRow(new Object[]{
-                        row[0], // Assuming row[0] is ThoiGian
-                        String.format("%.1f", row[1]),
-                        String.format("%.1f", row[2]),
-                        String.format("%.1f", row[3])
+                        row[0],
+                        numberFormat.format(row[1]),
+                        numberFormat.format(row[2]),
+                        numberFormat.format(row[3])
                     });
                 }
             } catch (Exception e) {
@@ -273,23 +287,21 @@ public class DoanhThuNam extends javax.swing.JFrame {
                     .addGroup(blue2Layout.createSequentialGroup()
                         .addComponent(jLabel2)
                         .addGap(18, 18, 18)
-                        .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(blue2Layout.createSequentialGroup()
-                                .addComponent(startDate, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(18, 18, 18)
-                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addGroup(blue2Layout.createSequentialGroup()
                                 .addGap(6, 6, 6)
-                                .addComponent(lblLoi, javax.swing.GroupLayout.PREFERRED_SIZE, 205, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addComponent(lblLoi, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(startDate, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addGap(18, 18, 18)
-                        .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(blue2Layout.createSequentialGroup()
-                                .addComponent(endDate, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(18, 18, 18)
-                                .addComponent(btnThongKe))
+                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addGroup(blue2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addGroup(blue2Layout.createSequentialGroup()
                                 .addGap(6, 6, 6)
-                                .addComponent(lblLoi1, javax.swing.GroupLayout.PREFERRED_SIZE, 205, javax.swing.GroupLayout.PREFERRED_SIZE)))))
+                                .addComponent(lblLoi1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(endDate, javax.swing.GroupLayout.PREFERRED_SIZE, 232, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGap(18, 18, 18)
+                        .addComponent(btnThongKe)))
                 .addContainerGap(28, Short.MAX_VALUE))
         );
         blue2Layout.setVerticalGroup(

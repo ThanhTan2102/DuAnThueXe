@@ -97,8 +97,8 @@ INSERT [dbo]. [LoaiXe]([MaLoai],[TenLoai]) VALUES ('7C', N'7 Chỗ')
 SET IDENTITY_INSERT [dbo].[ThongTinXe] ON 
 INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES (1, 'Honda CiVic', 4, '', 'NV001', '4c')
 INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES (2, 'VinFast', 2, '', 'NV001', '4c')
-INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES ('3', 'HuynDai', 2, '', 'NV001', '7C')
-INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES ('4', 'Ford', 2, '', 'NV001', '7C')
+INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES (3, 'HuynDai', 2, '', 'NV001', '7C')
+INSERT [dbo]. [ThongTinXe]([MaXe], [TenXe], [SoLuong], [Hinh], [MaNV], [MaLoai]) VALUES (4, 'Ford', 2, '', 'NV001', '7C')
 SET IDENTITY_INSERT [dbo].[ThongTinXe] OFF
 select * from ThongTinXe
 SET IDENTITY_INSERT [dbo].[HoaDonChiTiet] ON 
@@ -119,7 +119,7 @@ INSERT [dbo].[HoaDon]([MaHD],[MaKH],[MaNV],[NgayTao],[TrangThai],[TongTien])VALU
 
 select * from NhanVien
 select * from KhachHang
-select * from ThongTinXe
+select * from ThongTinXe ttx JOIN HoaDonChiTiet hdct On ttx.MaXe =hdct.MaXe JOIN HoaDon hd on hd.MaHD = hdct.MaHD 
 select * from LoaiXe
 select * from HoaDon
 select * from HoaDonChiTiet
@@ -145,70 +145,74 @@ END;
 
 --Doanh thu theo xe
 CREATE PROCEDURE sp_DoanhThuXe 
-    @maXe int, 
-    @thang int, 
-    @nam int
+    @maXe INT
 AS
 BEGIN
-    DECLARE @DoanhThu DECIMAL(18, 2);
-
     -- Tính toán doanh thu dựa trên thông tin của xe và các hóa đơn chi tiết
-    SELECT @DoanhThu = SUM(hdct.GiaThue)
-    FROM ThongTinXe ttx
-    JOIN HoaDonChiTiet hdct ON ttx.MaXe = hdct.MaXe
-    JOIN HoaDon hd ON hdct.MaHD = hd.MaHD
-    WHERE ttx.MaXe = @maXe
-        AND YEAR(hd.NgayTao) = @nam
-        AND MONTH(hd.NgayTao) = @thang;
+   SELECT
+   ConCat(ttx.MaXe,'-',ttx.TenXe) AS MaXe,
+	CONCAT(DATEPART(MONTH, hd.NgayTao), '-' , DATEPART(YEAR, hd.NgayTao)) AS ThoiGian,
+    SUM(hdct.GiaThue * hdct.SoLuongThue * (DATEDIFF(DAY, hdct.NgayDat, hdct.NgayTra)+1)) AS DoanhThuXe
 
-    -- Trả kết quả
-    SELECT
-		@maXe AS MaXe,
-        @thang AS Thang,
-        @nam AS Nam,
-        @DoanhThu AS DoanhThu;
+FROM
+    ThongTinXe ttx
+JOIN
+    HoaDonChiTiet hdct ON ttx.MaXe = hdct.MaXe
+JOIN
+    HoaDon hd ON hdct.MaHD = hd.MaHD
+WHERE
+    ttx.MaXe = @maXe
+GROUP BY
+    ConCat(ttx.MaXe,'-',ttx.TenXe),
+    CONCAT(DATEPART(MONTH, hd.NgayTao), '-' , DATEPART(YEAR, hd.NgayTao))
+	ORDER BY ThoiGian DESC
 END;
+
+
 
 
 --Doanh thu theo hóa đơn trong tháng, năm
 CREATE PROCEDURE sp_ThongKeHoaDon
-    @thang int,
-    @nam int
 AS
 BEGIN
-    -- Đặt ngày bắt đầu và kết thúc dựa trên tháng và năm đã cho
-    DECLARE @NgayBatDau DATE, @NgayKetThuc DATE;
+	SELECT COUNT(*) AS SoLuongHD,
+	CONCAT(DATEPART(MONTH, hd.NgayTao), '-', DATEPART(YEAR, hd.NgayTao)) AS ThoiGian,
+	SUM (TongTien) AS DoanhThu
+	FROM HoaDon hd JOIN HoaDonChiTiet hdct
+	ON hd.MaHD = hdct.MaHD
+	GROUP BY
+	CONCAT(DATEPART(MONTH, hd.NgayTao), '-', DATEPART(YEAR, hd.NgayTao))
+	ORDER BY ThoiGian DESC
+	END
 
-    SET @NgayBatDau = DATEFROMPARTS(@nam, @thang, 1);
-    SET @NgayKetThuc = EOMONTH(@NgayBatDau);
 
-    -- Thống kê số lượng hóa đơn trong tháng và năm
-    DECLARE @SoLuongHoaDon INT;
-    SELECT 
-        @SoLuongHoaDon = COUNT(*)
-    FROM 
-        HoaDon HD
-    WHERE 
-        HD.NgayTao BETWEEN @NgayBatDau AND @NgayKetThuc;
 
-    -- Thống kê doanh thu trong tháng và năm
-    DECLARE @DoanhThu DECIMAL(18, 2);
-    SELECT 
-        @DoanhThu = SUM(HD.TongTien)
-    FROM 
-        HoaDon HD
-    WHERE 
-        HD.NgayTao BETWEEN @NgayBatDau AND @NgayKetThuc;
+--Lọc doanh thu theo thời gian
+CREATE PROCEDURE sp_LocDoanhThuHoaDon(@NgayBD DATE, @NgayKT DATE)
+AS
+BEGIN
+    -- Trả về ngày đầu tiên của tháng của @NgayBD
+    SET @NgayBD = DATEADD(MONTH, DATEDIFF(MONTH, 0, @NgayBD), 0);
 
-    -- Trả kết quả
+    -- Trả về ngày cuối cùng của tháng của @NgayKT
+    SET @NgayKT = DATEADD(MONTH, DATEDIFF(MONTH, 0, @NgayKT) + 1, 0) - 1;
+
     SELECT
-        @thang AS Thang,
-        @nam AS Nam,
-        @SoLuongHoaDon AS SoLuongHoaDon,
-        @DoanhThu AS DoanhThu;
-END;
+        FORMAT(hd.NgayTao, 'MM-yyyy') AS ThoiGian,
+        COUNT(*) AS SoLuongHD,
+        SUM(TongTien) AS TongTien
+    FROM 
+        HoaDon hd 
+    JOIN 
+        HoaDonChiTiet hdct ON hd.MaHD = hdct.MaHD
+    WHERE 
+        CONVERT(DATE, hd.NgayTao, 103) >= @NgayBD
+        AND CONVERT(DATE, hd.NgayTao, 103) <= @NgayKT
+    GROUP BY
+        FORMAT(hd.NgayTao, 'MM-yyyy');
+END
 
---Thống kê thời gian
+--Lọc Doanh Thu hóa đơn theo thời gian
 CREATE PROCEDURE sp_LocDoanhThuTheoThang(@NgayBD DATE, @NgayKT DATE)
 AS
 BEGIN
@@ -234,27 +238,27 @@ BEGIN
         FORMAT(hd.NgayTao, 'MM-yyyy');
 END
 
-
-
-	SELECT
-    FORMAT(hd.NgayTao, 'MM-yyyy') AS ThoiGian,
-    MIN(TongTien) AS DoanhThuTN,
-    MAX(TongTien) AS DoanhThuCN,
-    SUM(TongTien) AS TongTien
-FROM 
-    HoaDon hd 
-JOIN 
-    HoaDonChiTiet hdct ON hd.MaHD = hdct.MaHD
-WHERE 
-    hd.NgayTao >= '2023-08-01'
-    AND hd.NgayTao < '2023-10-01'  -- Thêm một ngày sau để đảm bảo rằng không có mất mát dữ liệu trong tháng 9
-GROUP BY
-    FORMAT(hd.NgayTao, 'MM-yyyy');
-
-	END
-
-select * from NhanVien
-select * from KhachHang
-select * from HoaDon
-select * from HoaDonChiTiet
+--Tìm kiếm Xe
+CREATE PROCEDURE sp_TimKiemXe
+    @Keyword NVARCHAR(255) -- Thêm tham số cho từ khóa tìm kiếm
+AS
+BEGIN
+    SELECT
+        CONCAT(ttx.MaXe, '-', ttx.TenXe) AS MaXe,
+        CONCAT(DATEPART(MONTH, hd.NgayTao), '-', DATEPART(YEAR, hd.NgayTao)) AS ThoiGian,
+        SUM(hdct.GiaThue * hdct.SoLuongThue * (DATEDIFF(DAY, hdct.NgayDat, hdct.NgayTra) + 1)) AS DoanhThuXe
+    FROM
+        ThongTinXe ttx
+    JOIN
+        HoaDonChiTiet hdct ON ttx.MaXe = hdct.MaXe
+    JOIN
+        HoaDon hd ON hdct.MaHD = hd.MaHD
+    WHERE
+        ttx.MaXe LIKE '%' + @Keyword + '%' OR ttx.TenXe LIKE '%' + @Keyword + '%'
+    GROUP BY
+        CONCAT(ttx.MaXe, '-', ttx.TenXe),
+        CONCAT(DATEPART(MONTH, hd.NgayTao), '-', DATEPART(YEAR, hd.NgayTao))
+    ORDER BY
+        ThoiGian DESC;
+END;
 

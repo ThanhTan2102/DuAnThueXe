@@ -42,15 +42,10 @@ public class BD_DoanhThu extends javax.swing.JPanel {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
         try (Connection conn = getConnection()) {
-            // Replace this value with the appropriate year
-            int nam = 2023;
-
-            // Truyền ngày, tháng, và năm cho thủ tục
             String query = "EXEC sp_ThongKeDoanhThuTheoThang";
             try (PreparedStatement ps = conn.prepareStatement(query)) {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        // Ensure column names match the names returned by the stored procedure
                         dataset.addValue(rs.getDouble("TongTien"), "Tổng Doanh thu", rs.getString("ThoiGian"));
                         dataset.addValue(rs.getDouble("DoanhThuTN"), "Doanh thu thấp nhất", rs.getString("ThoiGian"));
                         dataset.addValue(rs.getDouble("DoanhThuCN"), "Doanh thu cao nhất", rs.getString("ThoiGian"));
@@ -63,36 +58,35 @@ public class BD_DoanhThu extends javax.swing.JPanel {
         return dataset;
     }
 
-    public static DefaultCategoryDataset createDatasetLoc() {
-        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+   public static DefaultCategoryDataset createDatasetLoc() {
+    DefaultCategoryDataset dataset = new DefaultCategoryDataset();
 
-        try (Connection conn = getConnection()) {
-            int nam = 2023;
+    try (Connection conn = getConnection()) {
+        int nam[] = {2023, 2024, 2025};
 
-            // Truyền ngày, tháng, và năm cho thủ tục
-            String query = "EXEC sp_LocDoanhThuTheoThang ?, ?";
-            try (PreparedStatement ps = conn.prepareStatement(query)) {
-                // Assuming you want to filter by the first day of the year and the last day of the year
-                LocalDate ngayBD = LocalDate.of(nam, 1, 1);
-                LocalDate ngayKT = LocalDate.of(nam, 12, 31);
+        // Truyền ngày, tháng, và năm cho thủ tục
+        String query = "EXEC sp_LocDoanhThuTheoThang ?, ?";
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            LocalDate ngayBD = LocalDate.of(nam[0], 1, 1); 
+            LocalDate ngayKT = LocalDate.of(nam[0], 12, 31); 
 
-                ps.setDate(1, Date.valueOf(ngayBD));
-                ps.setDate(2, Date.valueOf(ngayKT));
+            ps.setDate(1, Date.valueOf(ngayBD));
+            ps.setDate(2, Date.valueOf(ngayKT));
 
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        // Ensure column names match the names returned by the stored procedure
-                        dataset.addValue(rs.getDouble("TongTien"), "Tổng Doanh thu", rs.getString("ThoiGian"));
-                        dataset.addValue(rs.getDouble("DoanhThuTN"), "Doanh thu thấp nhất", rs.getString("ThoiGian"));
-                        dataset.addValue(rs.getDouble("DoanhThuCN"), "Doanh thu cao nhất", rs.getString("ThoiGian"));
-                    }
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    dataset.addValue(rs.getDouble("TongTien"), "Tổng Doanh thu", rs.getString("ThoiGian"));
+                    dataset.addValue(rs.getDouble("DoanhThuTN"), "Doanh thu thấp nhất", rs.getString("ThoiGian"));
+                    dataset.addValue(rs.getDouble("DoanhThuCN"), "Doanh thu cao nhất", rs.getString("ThoiGian"));
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-        return dataset;
+    } catch (Exception e) {
+        e.printStackTrace();
     }
+    return dataset;
+}
+
 
     public static JFreeChart createBarChart() {
         JFreeChart barChart = ChartFactory.createBarChart(
@@ -142,7 +136,7 @@ public class BD_DoanhThu extends javax.swing.JPanel {
 //
 
 //    public static void main(String[] args) {
-//        createBarChartLoc();
+//        createBarChart();
 //    }
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables
