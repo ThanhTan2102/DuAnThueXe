@@ -100,11 +100,11 @@ public class DoanhThuHoaDon extends javax.swing.JFrame {
             lblLoi.setText(" ");
             lblLoi1.setText("Ngày kết thúc không được để trống !");
             return;
-        } else if(startDate.getDate().after(endDate.getDate())){
+        } else if (startDate.getDate().after(endDate.getDate())) {
             lblLoi.setText("Ngày bắt đầu phải trước ngày kết thúc !");
             lblLoi1.setText(" ");
             return;
-        }else {
+        } else {
             try {
                 DefaultTableModel model = (DefaultTableModel) tblHoaDon.getModel();
                 model.setColumnIdentifiers(new Object[]{"Thời Gian", "Số Lượng", "Doanh Thu"});
@@ -122,6 +122,11 @@ public class DoanhThuHoaDon extends javax.swing.JFrame {
                         numberFormat.format(row[1]),
                         numberFormat.format(row[2])
                     });
+                    DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+                    centerRenderer.setHorizontalAlignment(DefaultTableCellRenderer.CENTER);
+                    for (int i = 0; i < tblHoaDon.getColumnCount(); i++) {
+                        tblHoaDon.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();

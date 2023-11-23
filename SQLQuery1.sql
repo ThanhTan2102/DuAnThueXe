@@ -15,8 +15,9 @@ CREATE TABLE NhanVien (
     CONSTRAINT PK_NhanVien PRIMARY KEY (MaNV)
 );
 
+SELECT * FROM NhanVien WHERE Email = 'phanthanhtan2102@gmail.com'
+UPDATE NhanVien SET email = 'yennhi231102@gmail.com' WHERE MaNV='NV002'
 -- Tạo bảng KhachHang*
-
 
 CREATE TABLE KhachHang (
     MaKH int IDENTITY(1, 1) NOT NULL,

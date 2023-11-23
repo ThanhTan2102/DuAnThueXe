@@ -122,6 +122,11 @@ public class DoanhThuNam extends javax.swing.JFrame {
                         numberFormat.format(row[2]),
                         numberFormat.format(row[3])
                     });
+                    DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+                    centerRenderer.setHorizontalAlignment(DefaultTableCellRenderer.CENTER);
+                    for (int i = 0; i < tblDoanhThu.getColumnCount(); i++) {
+                        tblDoanhThu.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
